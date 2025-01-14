@@ -2,10 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"go-kafka-producer/dto"
 	"go-kafka-producer/logger"
 	"net/http"
 	"sync"
+
+	"github.com/IBM/sarama"
 
 	"github.com/gin-gonic/gin"
 )
@@ -85,5 +88,44 @@ func (nc *notificationControllerStruct) CreateNewNotification(c *gin.Context) {
 }
 
 func (nc *notificationControllerStruct) PushToQueue(topic string, message []byte) error {
+	brokerUrls := []string{"localhost:9092"}
+	producer, err := nc.ConnectProducer(brokerUrls)
+
+	if err != nil {
+		logger.Logger.Error(err.Error())
+		return err
+	}
+	defer producer.Close()
+
+	msg := &sarama.ProducerMessage{
+		Topic: topic,
+		Value: sarama.StringEncoder(message),
+	}
+
+	partition, offset, err := producer.SendMessage(msg)
+
+	if err != nil {
+		logger.Logger.Error(err.Error())
+		return err
+	}
+
+	logger.Logger.Info(fmt.Sprintf("Message is stored in topic(%s)/partition(%d)/offset(%d)\n", topic, partition, offset))
+
 	return nil
+}
+
+func (nc *notificationControllerStruct) ConnectProducer(brokerUrls []string) (sarama.SyncProducer, error) {
+	config := sarama.NewConfig()
+	config.Producer.Return.Successes = true
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Retry.Max = 5
+
+	conn, err := sarama.NewSyncProducer(brokerUrls, config)
+
+	if err != nil {
+		logger.Logger.Error(err.Error())
+		return nil, err
+	}
+
+	return conn, nil
 }
