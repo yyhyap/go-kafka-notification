@@ -1,14 +1,16 @@
 package main
 
 import (
+	"go-kafka-producer/controllers"
 	"go-kafka-producer/utils"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 var (
 	dotEnvUtil utils.IDotEnvUtil = utils.DotEnvUtil
+
+	notificationController controllers.INotificationController = controllers.GetNotificationController()
 )
 
 func main() {
@@ -23,13 +25,7 @@ func main() {
 	router.Use(gin.Recovery())
 
 	routerGroup := router.Group("/api")
-	routerGroup.GET("/test", TestAPI)
+	routerGroup.POST("/notification", notificationController.CreateNewNotification)
 
 	router.Run(":" + port)
-}
-
-func TestAPI(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-	})
 }
