@@ -68,7 +68,7 @@ func (nc *notificationControllerStruct) CreateNewNotification(c *gin.Context) {
 		return
 	}
 
-	nc.PushToQueue(notificationsTopic, data)
+	err = nc.PushToQueue(notificationsTopic, data)
 
 	if err != nil {
 		logger.Logger.Error(err.Error())
